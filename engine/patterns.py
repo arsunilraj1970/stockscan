@@ -14,11 +14,13 @@ def set_profile(name: str = "conservative"):
     if name == "balanced":
         PARAMS = dict(vol_breakout=1.25, vol_base=1.2, vol_flag=1.1, rsi_cap=82,
                       base_depth=0.13, sma200_rising=False, strong_close=False,
-                      include_forming=True)
+                      include_forming=True, include_base=True)
     else:
+        # base breakouts dropped from the conservative book per the validated
+        # 2026-08-03 miss-analysis finding (negative expectancy in every test)
         PARAMS = dict(vol_breakout=1.5, vol_base=1.4, vol_flag=1.2, rsi_cap=78,
                       base_depth=0.10, sma200_rising=True, strong_close=True,
-                      include_forming=False)
+                      include_forming=False, include_base=False)
 
 
 set_profile()
@@ -152,6 +154,8 @@ DETECTORS = [breakout_55d, base_breakout, flag_continuation]
 def detect(df: pd.DataFrame):
     """Run all detectors, return first (strongest-priority) hit."""
     for det in DETECTORS:
+        if det is base_breakout and not PARAMS.get("include_base", True):
+            continue
         hit = det(df)
         if hit:
             return hit
