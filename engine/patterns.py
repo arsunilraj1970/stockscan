@@ -5,6 +5,24 @@ and returns None or a dict describing the setup on the LAST bar."""
 import numpy as np
 import pandas as pd
 
+# Risk-profile parameters. Defaults = conservative; set_profile() switches.
+PARAMS = {}
+
+
+def set_profile(name: str = "conservative"):
+    global PARAMS
+    if name == "balanced":
+        PARAMS = dict(vol_breakout=1.25, vol_base=1.2, vol_flag=1.1, rsi_cap=82,
+                      base_depth=0.13, sma200_rising=False, strong_close=False,
+                      include_forming=True)
+    else:
+        PARAMS = dict(vol_breakout=1.5, vol_base=1.4, vol_flag=1.2, rsi_cap=78,
+                      base_depth=0.10, sma200_rising=True, strong_close=True,
+                      include_forming=False)
+
+
+set_profile()
+
 
 def _uptrend(row) -> bool:
     return (
@@ -14,6 +32,8 @@ def _uptrend(row) -> bool:
 
 
 def _sma200_rising(df) -> bool:
+    if not PARAMS["sma200_rising"]:
+        return True
     s = df["SMA200"].dropna()
     return len(s) > 21 and s.iloc[-1] > s.iloc[-21]
 
@@ -28,12 +48,12 @@ def breakout_55d(df: pd.DataFrame):
         return None
     if last["Close"] <= prior_high:
         return None
-    if last["Volume"] < 1.5 * last["VOL50"] or pd.isna(last["VOL50"]):
+    if last["Volume"] < PARAMS["vol_breakout"] * last["VOL50"] or pd.isna(last["VOL50"]):
         return None
     rng = last["High"] - last["Low"]
-    if rng > 0 and (last["Close"] - last["Low"]) / rng < 0.5:
+    if PARAMS["strong_close"] and rng > 0 and (last["Close"] - last["Low"]) / rng < 0.5:
         return None  # weak close
-    if last["RSI14"] > 78:
+    if last["RSI14"] > PARAMS["rsi_cap"]:
         return None  # over-extended
     is_52w = last["Close"] >= df["HI52"].iloc[-2] * 0.999
     return {
@@ -54,8 +74,8 @@ def base_breakout(df: pd.DataFrame):
         base = df.iloc[-(n + 1) : -1]
         hi, lo = base["High"].max(), base["Low"].min()
         depth = (hi - lo) / lo
-        if depth <= 0.10 and last["Close"] > hi and last["Volume"] >= 1.4 * last["VOL50"]:
-            if last["RSI14"] > 78:
+        if depth <= PARAMS["base_depth"] and last["Close"] > hi and last["Volume"] >= PARAMS["vol_base"] * last["VOL50"]:
+            if last["RSI14"] > PARAMS["rsi_cap"]:
                 return None
             return {
                 "pattern": f"{n}-session base breakout",
@@ -87,8 +107,8 @@ def flag_continuation(df: pd.DataFrame):
         shallow = (pull["High"].max() - pull["Low"].min()) / pull["Low"].min() < 0.08
         if lower_highs and touched and shallow:
             # resumption: close above previous bar high on decent volume
-            if last["Close"] > pull["High"].iloc[-1] and last["Volume"] >= 1.2 * last["VOL50"]:
-                if last["RSI14"] > 75:
+            if last["Close"] > pull["High"].iloc[-1] and last["Volume"] >= PARAMS["vol_flag"] * last["VOL50"]:
+                if last["RSI14"] > min(75, PARAMS["rsi_cap"]):
                     return None
                 return {
                     "pattern": f"bull-flag pullback ({n} sessions)",
@@ -96,6 +116,34 @@ def flag_continuation(df: pd.DataFrame):
                     "vol_ratio": round(float(last["Volume"] / last["VOL50"]), 2),
                 }
     return None
+
+
+def forming_breakout(df: pd.DataFrame):
+    """Balanced-profile only: price coiled just BELOW a breakout level — a
+    watchlist candidate, not yet a buy."""
+    if len(df) < 260:
+        return None
+    last = df.iloc[-1]
+    if not _uptrend(last):
+        return None
+    prior_high = df["High"].iloc[-56:-1].max()
+    c = float(last["Close"])
+    if c > prior_high:
+        return None  # already broke out
+    if (prior_high - c) / prior_high > 0.025:
+        return None  # not close enough
+    if last["RSI14"] > PARAMS["rsi_cap"]:
+        return None
+    v5 = df["Volume"].iloc[-5:].mean()
+    if pd.isna(last["VOL50"]) or v5 < 1.0 * last["VOL50"]:
+        return None  # volume not building
+    return {
+        "pattern": "forming breakout (watch)",
+        "breakout_level": round(float(prior_high), 2),
+        "vol_ratio": round(float(v5 / last["VOL50"]), 2),
+        "watch": True,
+        "entry_override": round(float(prior_high) * 1.002, 2),
+    }
 
 
 DETECTORS = [breakout_55d, base_breakout, flag_continuation]
@@ -107,4 +155,6 @@ def detect(df: pd.DataFrame):
         hit = det(df)
         if hit:
             return hit
+    if PARAMS.get("include_forming"):
+        return forming_breakout(df)
     return None

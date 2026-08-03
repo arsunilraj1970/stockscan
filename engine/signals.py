@@ -9,13 +9,22 @@ MIN_STOP_PCT = 0.025
 MAX_STOP_PCT = 0.065
 
 
+def set_profile(name: str = "conservative"):
+    global MIN_RR, MAX_STOP_PCT
+    if name == "balanced":
+        MIN_RR, MAX_STOP_PCT = 1.5, 0.085
+    else:
+        MIN_RR, MAX_STOP_PCT = 2.0, 0.065
+
+
 def build_signal(symbol: str, market: str, df: pd.DataFrame, hit: dict):
     last = df.iloc[-1]
     close = float(last["Close"])
     atr = float(last["ATR14"])
 
-    # Entry: a touch above the signal bar's high (confirmation on follow-through)
-    entry = round(float(last["High"]) * 1.002, 2)
+    # Entry: a touch above the signal bar's high (confirmation on follow-through),
+    # unless the pattern supplies its own level (forming/watch setups).
+    entry = hit.get("entry_override") or round(float(last["High"]) * 1.002, 2)
 
     # Stop: below max(recent swing low, entry - 2*ATR), whichever is nearer but
     # within the conservative band.
@@ -63,10 +72,12 @@ def build_signal(symbol: str, market: str, df: pd.DataFrame, hit: dict):
     score = int(max(0, min(100, round(score))))
 
     cur = "₹" if market == "india" else "$"
+    watch = bool(hit.get("watch"))
     return {
         "symbol": symbol,
         "market": market,
         "date": str(df.index[-1].date()),
+        "watch": watch,
         "pattern": hit["pattern"],
         "close": round(close, 2),
         "entry": entry,
@@ -84,6 +95,9 @@ def build_signal(symbol: str, market: str, df: pd.DataFrame, hit: dict):
         "confidence": score,
         "currency": cur,
         "note": (
+            f"Watchlist only — no breakout yet. Becomes a buy ONLY if price crosses "
+            f"{cur}{entry}; until then it is not a trade."
+            if watch else
             f"Buy only if price crosses {cur}{entry} (use a trigger/GTT order). "
             f"If not triggered within 3 sessions, cancel — the setup is stale."
         ),
