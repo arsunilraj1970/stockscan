@@ -1,0 +1,19 @@
+name: Unpack tool zip
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          unzip -o repo-files.zip
+          rsync -a stockscan/ ./
+          rm -rf stockscan repo-files.zip
+          git config user.name setup-bot
+          git config user.email actions@github.com
+          git add -A
+          git commit -m 'Unpack tool files'
+          git push
