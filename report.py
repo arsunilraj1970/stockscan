@@ -181,6 +181,45 @@ def section(scan):
     return f'<h2>{name}</h2>{meta}{body}'
 
 
+def paper_section(market):
+    p = os.path.join(OUT, f"paper_book_{market}.json")
+    if not os.path.exists(p):
+        return ""
+    b = json.load(open(p))
+    name = "India" if market == "india" else "US"
+    s = b["stats"]
+    head = (f'<h2>Paper-trading book — {name} <span style="font-weight:400;color:var(--ink2);'
+            f'font-size:13px">(since {b["since"]}, simulated with standard rules)</span></h2>')
+    if s.get("trades"):
+        stats = (f'<div class="meta">Closed trades: {s["trades"]} · win rate {int(s["win_rate"]*100)}% · '
+                 f'average {s["avg_r"]:+.2f}R · total {s["total_r"]:+.2f}R '
+                 f'(R = one unit of risk; at ₹1,000 risked per trade, total ≈ ₹{int(s["total_r"]*1000):+,})</div>')
+    else:
+        stats = '<div class="meta">No closed trades yet.</div>'
+    def tbl(rows, cols, labels):
+        if not rows:
+            return ""
+        body = "".join("<tr>" + "".join(f"<td>{r.get(c, '')}</td>" for c in cols) + "</tr>" for r in rows)
+        return ("<table><thead><tr>" + "".join(f"<th>{l}</th>" for l in labels) +
+                f"</tr></thead><tbody>{body}</tbody></table>")
+    parts = [head, stats]
+    if b["pending"]:
+        parts.append("<h3>Awaiting entry trigger</h3>" + tbl(
+            b["pending"], ["symbol", "pattern", "signal_date", "entry", "stop_loss", "target", "sessions_left"],
+            ["Symbol", "Pattern", "Signal", "Entry", "Stop", "Target", "Sessions left"]))
+    if b["open"]:
+        parts.append("<h3>Open positions</h3>" + tbl(
+            b["open"], ["symbol", "entered", "entry", "current", "unrealized_r", "unrealized_pct", "sessions_held"],
+            ["Symbol", "Entered", "Entry", "Now", "Unreal. R", "Unreal. %", "Sessions"]))
+    if b["closed"]:
+        parts.append("<h3>Closed trades</h3>" + tbl(
+            b["closed"], ["symbol", "entered", "exit_date", "result", "r_multiple", "pnl_pct", "sessions_held"],
+            ["Symbol", "Entered", "Exited", "Result", "R", "P&L %", "Sessions"]))
+    if b["expired_untriggered"]:
+        parts.append(f'<div class="meta">{b["expired_untriggered"]} signal(s) expired without triggering — no trade, no loss.</div>')
+    return "".join(parts)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=str(date.today()))
@@ -192,6 +231,8 @@ def main():
         p = os.path.join(OUT, f"scan_{m}_{args.date}.json")
         if os.path.exists(p):
             sections.append(section(json.load(open(p))))
+    for m in args.markets.split(","):
+        sections.append(paper_section(m))
     doc = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Swing Scan — {args.date}</title><style>{CSS}</style></head><body>
