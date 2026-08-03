@@ -39,7 +39,7 @@ def summarize(closed):
     }
 
 
-def run(market, since):
+def run(market, since, profile="conservative"):
     universe = data.load_universe(market)
     pending, open_pos, closed, expired = [], [], [], 0
     for sym in universe:
@@ -115,11 +115,12 @@ def run(market, since):
                                  "unrealized_r": round((cur - entry) / risk, 2),
                                  "unrealized_pct": round((cur - entry) / entry * 100, 2)})
     book = {
-        "market": market, "since": since,
+        "market": market, "since": since, "profile": profile,
         "pending": pending, "open": open_pos, "closed": closed,
         "expired_untriggered": expired, "stats": summarize(closed),
     }
-    path = os.path.join(OUT, f"paper_book_{market}.json")
+    suffix = "" if profile == "conservative" else f"_{profile}"
+    path = os.path.join(OUT, f"paper_book_{market}{suffix}.json")
     with open(path, "w") as f:
         json.dump(book, f, indent=2)
     return book
@@ -129,6 +130,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--market", required=True, choices=["india", "us"])
     ap.add_argument("--since", default="2026-07-31")
+    ap.add_argument("--profile", default="conservative", choices=["conservative", "balanced"])
     args = ap.parse_args()
-    book = run(args.market, args.since)
+    patterns.set_profile(args.profile)
+    signals.set_profile(args.profile)
+    book = run(args.market, args.since, args.profile)
     print(json.dumps(book, indent=2))

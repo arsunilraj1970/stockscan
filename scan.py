@@ -72,7 +72,12 @@ def main():
     ap.add_argument("--date", default=str(date.today()))
     ap.add_argument("--symbol")
     ap.add_argument("--no-log", action="store_true")
+    ap.add_argument("--profile", default="conservative", choices=["conservative", "balanced"])
     args = ap.parse_args()
+    patterns.set_profile(args.profile)
+    signals.set_profile(args.profile)
+    if args.profile != "conservative":
+        args.no_log = True  # only the conservative book feeds the signals log
 
     if args.symbol:
         sig, reason = analyze_symbol(args.market, args.symbol.upper(), args.date)
@@ -83,12 +88,14 @@ def main():
     result = {
         "market": args.market,
         "scan_date": args.date,
+        "profile": args.profile,
         "universe_size": n,
         "signals": top,
         "additional_signals_count": len(rest),
         "data_quality_skips": skipped,
     }
-    out_path = os.path.join(OUT, f"scan_{args.market}_{args.date}.json")
+    suffix = "" if args.profile == "conservative" else f"_{args.profile}"
+    out_path = os.path.join(OUT, f"scan_{args.market}_{args.date}{suffix}.json")
     with open(out_path, "w") as f:
         json.dump(result, f, indent=2)
     if not args.no_log:

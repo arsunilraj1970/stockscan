@@ -181,14 +181,43 @@ def section(scan):
     return f'<h2>{name}</h2>{meta}{body}'
 
 
-def paper_section(market):
-    p = os.path.join(OUT, f"paper_book_{market}.json")
+def balanced_section(market, day):
+    p = os.path.join(OUT, f"scan_{market}_{day}_balanced.json")
+    if not os.path.exists(p):
+        return ""
+    scan = json.load(open(p))
+    name = "India" if market == "india" else "US"
+    cons_p = os.path.join(OUT, f"scan_{market}_{day}.json")
+    cons_syms = {s["symbol"] for s in json.load(open(cons_p))["signals"]} if os.path.exists(cons_p) else set()
+    act = [s for s in scan["signals"] if not s.get("watch") and s["symbol"] not in cons_syms]
+    watch = [s for s in scan["signals"] if s.get("watch")]
+    head = (f'<h2>Balanced risk — additional ideas, {name} <span style="font-weight:400;color:var(--ink2);'
+            f'font-size:13px">(looser filters: volume ≥1.25×, stops to 8%, RR ≥ 1:1.5 — take smaller positions)</span></h2>')
+    parts = [head]
+    if act:
+        parts.append(table(act))
+    else:
+        parts.append('<div class="meta">No additional actionable balanced setups beyond the conservative list.</div>')
+    if watch:
+        rows = "".join(
+            f'<tr><td>{s["symbol"]}</td><td>{html.escape(s["pattern"])}</td>'
+            f'<td>{s["currency"]}{s["entry"]:,}</td><td>{s["currency"]}{s["stop_loss"]:,}</td>'
+            f'<td>{s["currency"]}{s["target"]:,}</td><td>{s["confidence"]}</td></tr>' for s in watch)
+        parts.append('<h2 style="font-size:15px">Watchlist — forming setups (NOT yet trades)</h2>'
+                     '<table><thead><tr><th>Symbol</th><th>Pattern</th><th>Becomes a buy above</th>'
+                     f'<th>Then stop</th><th>Then target</th><th>Conf.</th></tr></thead><tbody>{rows}</tbody></table>')
+    return "".join(parts)
+
+
+def paper_section(market, profile="conservative"):
+    suffix = "" if profile == "conservative" else f"_{profile}"
+    p = os.path.join(OUT, f"paper_book_{market}{suffix}.json")
     if not os.path.exists(p):
         return ""
     b = json.load(open(p))
     name = "India" if market == "india" else "US"
     s = b["stats"]
-    head = (f'<h2>Paper-trading book — {name} <span style="font-weight:400;color:var(--ink2);'
+    head = (f'<h2>Paper-trading book ({profile}) — {name} <span style="font-weight:400;color:var(--ink2);'
             f'font-size:13px">(since {b["since"]}, simulated with standard rules)</span></h2>')
     if s.get("trades"):
         stats = (f'<div class="meta">Closed trades: {s["trades"]} · win rate {int(s["win_rate"]*100)}% · '
@@ -232,7 +261,10 @@ def main():
         if os.path.exists(p):
             sections.append(section(json.load(open(p))))
     for m in args.markets.split(","):
-        sections.append(paper_section(m))
+        sections.append(balanced_section(m, args.date))
+    for m in args.markets.split(","):
+        sections.append(paper_section(m, "conservative"))
+        sections.append(paper_section(m, "balanced"))
     doc = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Swing Scan — {args.date}</title><style>{CSS}</style></head><body>
