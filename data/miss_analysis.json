@@ -1,0 +1,234 @@
+{
+  "generated": "2026-08-03",
+  "lookback_sessions": 300,
+  "sample": {
+    "closed": 705,
+    "stopped": 427,
+    "target": 157,
+    "stale": 121
+  },
+  "factor_compare": {
+    "rsi": {
+      "missed": 66.15,
+      "won": 65.62
+    },
+    "vol_ratio": {
+      "missed": 2.07,
+      "won": 2.0
+    },
+    "ext_atr": {
+      "missed": 1.84,
+      "won": 1.84
+    },
+    "stop_pct": {
+      "missed": 4.76,
+      "won": 4.88
+    },
+    "confidence": {
+      "missed": 71.5,
+      "won": 70.64
+    },
+    "pct_from_52w_high": {
+      "missed": 2.71,
+      "won": 2.79
+    }
+  },
+  "buckets": {
+    "rsi": [
+      {
+        "bucket": "RSI < 60",
+        "n": 111,
+        "win_rate": 0.36,
+        "avg_r": 0.2
+      },
+      {
+        "bucket": "RSI 60-70",
+        "n": 387,
+        "win_rate": 0.344,
+        "avg_r": -0.02
+      },
+      {
+        "bucket": "RSI > 70",
+        "n": 207,
+        "win_rate": 0.382,
+        "avg_r": 0.13
+      }
+    ],
+    "ext_atr": [
+      {
+        "bucket": "< 1 ATR above EMA20",
+        "n": 98,
+        "win_rate": 0.378,
+        "avg_r": 0.22
+      },
+      {
+        "bucket": "1-2 ATR",
+        "n": 303,
+        "win_rate": 0.353,
+        "avg_r": 0.04
+      },
+      {
+        "bucket": "> 2 ATR (extended)",
+        "n": 304,
+        "win_rate": 0.355,
+        "avg_r": 0.03
+      }
+    ],
+    "vol_ratio": [
+      {
+        "bucket": "vol 1.4-1.8x",
+        "n": 403,
+        "win_rate": 0.35,
+        "avg_r": 0.06
+      },
+      {
+        "bucket": "1.8-2.5x",
+        "n": 178,
+        "win_rate": 0.371,
+        "avg_r": 0.07
+      },
+      {
+        "bucket": "> 2.5x",
+        "n": 124,
+        "win_rate": 0.363,
+        "avg_r": 0.05
+      }
+    ],
+    "confidence": [
+      {
+        "bucket": "conf < 72",
+        "n": 339,
+        "win_rate": 0.386,
+        "avg_r": 0.18
+      },
+      {
+        "bucket": "72-80",
+        "n": 274,
+        "win_rate": 0.314,
+        "avg_r": -0.11
+      },
+      {
+        "bucket": "> 80",
+        "n": 92,
+        "win_rate": 0.38,
+        "avg_r": 0.11
+      }
+    ]
+  },
+  "rules": [
+    {
+      "rule": "drop_base_breakout",
+      "description": "Drop the base-breakout pattern family entirely (weakest backtest performer)",
+      "baseline": {
+        "trades": 705,
+        "total_r": 42.7,
+        "win_rate": 0.357
+      },
+      "filtered": {
+        "trades": 580,
+        "total_r": 60.4,
+        "win_rate": 0.371
+      },
+      "r_improvement": 17.8,
+      "validated": true
+    },
+    {
+      "rule": "not_extended",
+      "description": "Skip signals more than 2 ATR above the 20-EMA (chasing extended moves)",
+      "baseline": {
+        "trades": 705,
+        "total_r": 42.7,
+        "win_rate": 0.357
+      },
+      "filtered": {
+        "trades": 401,
+        "total_r": 32.3,
+        "win_rate": 0.359
+      },
+      "r_improvement": -10.4,
+      "validated": false
+    },
+    {
+      "rule": "high_confidence",
+      "description": "Only trade confidence 75+ signals",
+      "baseline": {
+        "trades": 705,
+        "total_r": 42.7,
+        "win_rate": 0.357
+      },
+      "filtered": {
+        "trades": 209,
+        "total_r": 9.1,
+        "win_rate": 0.368
+      },
+      "r_improvement": -33.6,
+      "validated": false
+    },
+    {
+      "rule": "strong_volume",
+      "description": "Require breakout volume at least 2x average (weak-volume breakouts fail more)",
+      "baseline": {
+        "trades": 705,
+        "total_r": 42.7,
+        "win_rate": 0.357
+      },
+      "filtered": {
+        "trades": 235,
+        "total_r": 8.4,
+        "win_rate": 0.357
+      },
+      "r_improvement": -34.3,
+      "validated": false
+    },
+    {
+      "rule": "rsi_cap_72",
+      "description": "Skip signals with RSI above 72 (late, over-heated entries)",
+      "baseline": {
+        "trades": 705,
+        "total_r": 42.7,
+        "win_rate": 0.357
+      },
+      "filtered": {
+        "trades": 574,
+        "total_r": 8.3,
+        "win_rate": 0.341
+      },
+      "r_improvement": -34.4,
+      "validated": false
+    },
+    {
+      "rule": "tight_stop",
+      "description": "Only take setups whose natural stop is within 5% (structure is nearby)",
+      "baseline": {
+        "trades": 705,
+        "total_r": 42.7,
+        "win_rate": 0.357
+      },
+      "filtered": {
+        "trades": 412,
+        "total_r": 5.9,
+        "win_rate": 0.34
+      },
+      "r_improvement": -36.8,
+      "validated": false
+    }
+  ],
+  "validated_feedback": [
+    {
+      "rule": "drop_base_breakout",
+      "description": "Drop the base-breakout pattern family entirely (weakest backtest performer)",
+      "baseline": {
+        "trades": 705,
+        "total_r": 42.7,
+        "win_rate": 0.357
+      },
+      "filtered": {
+        "trades": 580,
+        "total_r": 60.4,
+        "win_rate": 0.371
+      },
+      "r_improvement": 17.8,
+      "validated": true
+    }
+  ]
+}

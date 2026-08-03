@@ -1,0 +1,114 @@
+{
+  "generated": "2026-08-03",
+  "lookback_sessions": 300,
+  "profiles": {
+    "conservative": {
+      "signals": 990,
+      "expired": 285,
+      "closed": 705,
+      "outcomes": {
+        "target": 157,
+        "stopped": 427,
+        "stale": 121
+      },
+      "win_rate": 0.357,
+      "total_r": 42.7,
+      "avg_r": 0.061,
+      "by_family": {
+        "base breakout": {
+          "signals": 209,
+          "expired": 84,
+          "closed": 125,
+          "outcomes": {
+            "target": 21,
+            "stopped": 83,
+            "stale": 21
+          },
+          "win_rate": 0.296,
+          "total_r": -17.8,
+          "avg_r": -0.142
+        },
+        "bull-flag": {
+          "signals": 438,
+          "expired": 128,
+          "closed": 310,
+          "outcomes": {
+            "target": 75,
+            "stopped": 187,
+            "stale": 48
+          },
+          "win_rate": 0.355,
+          "total_r": 29.7,
+          "avg_r": 0.096
+        },
+        "high breakout": {
+          "signals": 343,
+          "expired": 73,
+          "closed": 270,
+          "outcomes": {
+            "target": 61,
+            "stopped": 157,
+            "stale": 52
+          },
+          "win_rate": 0.389,
+          "total_r": 30.7,
+          "avg_r": 0.114
+        }
+      }
+    },
+    "balanced": {
+      "signals": 1682,
+      "expired": 505,
+      "closed": 1177,
+      "outcomes": {
+        "target": 297,
+        "stopped": 715,
+        "stale": 165
+      },
+      "win_rate": 0.357,
+      "total_r": 50.7,
+      "avg_r": 0.043,
+      "by_family": {
+        "base breakout": {
+          "signals": 432,
+          "expired": 140,
+          "closed": 292,
+          "outcomes": {
+            "target": 66,
+            "stopped": 188,
+            "stale": 38
+          },
+          "win_rate": 0.318,
+          "total_r": -25.8,
+          "avg_r": -0.088
+        },
+        "bull-flag": {
+          "signals": 624,
+          "expired": 176,
+          "closed": 448,
+          "outcomes": {
+            "target": 140,
+            "stopped": 256,
+            "stale": 52
+          },
+          "win_rate": 0.404,
+          "total_r": 88.1,
+          "avg_r": 0.197
+        },
+        "high breakout": {
+          "signals": 626,
+          "expired": 189,
+          "closed": 437,
+          "outcomes": {
+            "target": 91,
+            "stopped": 271,
+            "stale": 75
+          },
+          "win_rate": 0.334,
+          "total_r": -11.5,
+          "avg_r": -0.026
+        }
+      }
+    }
+  }
+}
