@@ -1,0 +1,36 @@
+{
+  "market": "india",
+  "n_signals": 529,
+  "by_pattern": {
+    "55d/52w-high breakout": {
+      "signals": 179,
+      "trigger_rate": 0.78,
+      "reached_target_rate": 0.29,
+      "stopped_rate": 0.68,
+      "reached_70pct_rate": 0.37,
+      "median_sessions_to_70pct": 15.5,
+      "median_sessions_to_target": 27.5,
+      "p75_sessions_to_target": 46.5
+    },
+    "base breakout": {
+      "signals": 121,
+      "trigger_rate": 0.6,
+      "reached_target_rate": 0.17,
+      "stopped_rate": 0.79,
+      "reached_70pct_rate": 0.22,
+      "median_sessions_to_70pct": 16.0,
+      "median_sessions_to_target": 26.5,
+      "p75_sessions_to_target": 35.25
+    },
+    "bull-flag pullback": {
+      "signals": 229,
+      "trigger_rate": 0.7,
+      "reached_target_rate": 0.27,
+      "stopped_rate": 0.71,
+      "reached_70pct_rate": 0.35,
+      "median_sessions_to_70pct": 14.0,
+      "median_sessions_to_target": 23.0,
+      "p75_sessions_to_target": 37.25
+    }
+  }
+}
