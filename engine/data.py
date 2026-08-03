@@ -18,7 +18,10 @@ def load_history(market: str, symbol: str) -> pd.DataFrame | None:
     if market == "india":
         path = os.path.join(DATA, "eod2_data", "daily", symbol.lower() + ".csv")
     else:
-        path = os.path.join(DATA, "us_daily", symbol.upper() + ".csv")
+        # us_daily may sit at repo root (pipeline output) or under data/
+        path = os.path.join(ROOT, "us_daily", symbol.upper() + ".csv")
+        if not os.path.exists(path):
+            path = os.path.join(DATA, "us_daily", symbol.upper() + ".csv")
     if not os.path.exists(path):
         return None
     try:
@@ -33,6 +36,12 @@ def load_history(market: str, symbol: str) -> pd.DataFrame | None:
     df.columns = ["Date", "Open", "High", "Low", "Close", "Volume"]
     df = df.dropna().sort_values("Date").set_index("Date")
     df = df[~df.index.duplicated(keep="last")]
+    if market == "us" and len(df):
+        # Never analyze a partial bar: drop today's row unless the US session
+        # has closed (>= 21:00 UTC covers both EDT and EST closes).
+        now = pd.Timestamp.utcnow()
+        if df.index[-1].date() == now.date() and now.hour < 21:
+            df = df.iloc[:-1]
     return df.tail(700)  # ~2.5 years is plenty
 
 
