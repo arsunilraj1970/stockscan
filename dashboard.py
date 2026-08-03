@@ -136,8 +136,8 @@ function signalsTable(){
   if(!scan){ $('signals').innerHTML = '<span class="sub">No scan for this selection.</span>'; return; }
   const rows = (scan.signals||[]);
   const act = rows.filter(r=>!r.watch), watch = rows.filter(r=>r.watch);
-  const tbl = (list) => list.length ? '<table><thead><tr><th>Symbol</th><th>Pattern</th><th>Conf.</th><th>Entry</th><th>Stop</th><th>Target</th><th>R:R</th><th>Vol</th><th>RSI</th></tr></thead><tbody>' +
-    list.map(r=>`<tr><td>${r.symbol}</td><td>${r.pattern}</td><td>${r.confidence}</td><td>${fmt(r.entry,r.currency)}</td><td>${fmt(r.stop_loss,r.currency)} (−${r.stop_pct}%)</td><td>${fmt(r.target,r.currency)} (+${r.target_pct}%)</td><td>1:${r.risk_reward}</td><td>${r.vol_ratio||''}×</td><td>${r.rsi}</td></tr>`).join('') +
+  const tbl = (list) => list.length ? '<table><thead><tr><th>Symbol</th><th>Pattern</th><th>Conf.</th><th>Entry</th><th>Stop</th><th>Target</th><th>Stop→entry at</th><th>R:R</th><th>Vol</th><th>RSI</th></tr></thead><tbody>' +
+    list.map(r=>`<tr><td>${r.symbol}</td><td>${r.pattern}</td><td>${r.confidence}</td><td>${fmt(r.entry,r.currency)}</td><td>${fmt(r.stop_loss,r.currency)} (−${r.stop_pct}%)</td><td>${fmt(r.target,r.currency)} (+${r.target_pct}%)</td><td>${r.breakeven_trigger?fmt(r.breakeven_trigger,r.currency):'—'}</td><td>1:${r.risk_reward}</td><td>${r.vol_ratio||''}×</td><td>${r.rsi}</td></tr>`).join('') +
     '</tbody></table>' : '<div class="sub">None today.</div>';
   $('signals').innerHTML =
     `<div class="sub">Scanned ${scan.universe_size} stocks · data through ${(rows[0]||{}).date||scan.scan_date} · profile: ${prof}</div>` +

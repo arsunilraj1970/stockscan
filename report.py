@@ -109,6 +109,10 @@ def pattern_family(name):
 
 
 def timing_note(sig):
+    if sig.get("breakeven_trigger"):
+        return ('<div class="note">Exit rules (validated 2026-08-03 study): historically ~66-69% of these '
+                'setups end in profit or at breakeven under the 1.5R-target + stop-to-entry rule; most '
+                'resolve within ~4 weeks. If still open after ~40 sessions, exit.</div>')
     p = os.path.join(ROOT, "data", f"backtest_stats_{sig['market']}.json")
     if not os.path.exists(p):
         return ""
@@ -125,6 +129,10 @@ def timing_note(sig):
 def card(sig, series):
     c = sig["currency"]
     f = lambda v: f"{c}{v:,}"
+    be_row = ""
+    if sig.get("breakeven_trigger"):
+        be_row = (f'<div><span>Move stop to entry at</span>'
+                  f'<span class="num">{f(sig["breakeven_trigger"])}</span></div>')
     sup = f'{f(sig["support"])} (touched {sig["support_strength"]}×)' if sig["support"] else "—"
     res = f(sig["resistance"]) if sig["resistance"] else "blue sky (at highs)"
     sdata = json.dumps([[d, v] for d, v in series])
@@ -138,6 +146,7 @@ def card(sig, series):
     <div><span>Friday close</span><span class="num">{f(sig["close"])}</span></div>
     <div class="k-stop"><span>Stop loss</span><span class="num">{f(sig["stop_loss"])} (−{sig["stop_pct"]}%)</span></div>
     <div class="k-target"><span>Target</span><span class="num">{f(sig["target"])} (+{sig["target_pct"]}%)</span></div>
+    {be_row}
     <div><span>Risk : reward</span><span class="num">1 : {sig["risk_reward"]}</span></div>
     <div><span>Breakout volume</span><span class="num">{sig["vol_ratio"]}× average</span></div>
     <div><span>Support below</span><span class="num">{sup}</span></div>
