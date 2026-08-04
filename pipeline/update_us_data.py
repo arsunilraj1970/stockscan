@@ -12,7 +12,7 @@ import time
 import urllib.request
 
 import pandas as pd
-import yfinance as yf
+import yfinance as yf  # noqa: F401
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 US_DIR = os.path.join(ROOT, "us_daily")
@@ -51,27 +51,74 @@ def refresh_nifty500():
         print("Nifty 500 refresh skipped:", e)
 
 
+def _existing_last_date(sym):
+    p = os.path.join(US_DIR, sym + ".csv")
+    if not os.path.exists(p):
+        return ""
+    return open(p).read().rstrip("\n").split("\n")[-1].split(",")[0]
+
+
+def _write_if_fresher(sym, df):
+    """Never regress a file to older data."""
+    if df is None or len(df) < 100:
+        return False
+    last_new = str(df.index[-1].date()) if hasattr(df.index[-1], "date") else str(df.index[-1])[:10]
+    if last_new <= _existing_last_date(sym):
+        return False
+    out = df[["Open", "High", "Low", "Close", "Volume"]].round(4)
+    out.index.name = "Date"
+    out.to_csv(os.path.join(US_DIR, sym + ".csv"))
+    return True
+
+
+def _stooq(sym):
+    """Fallback source: stooq.com free daily CSV."""
+    try:
+        url = f"https://stooq.com/q/d/l/?s={sym.replace('.', '-').lower()}.us&i=d"
+        df = pd.read_csv(io.BytesIO(fetch(url)), parse_dates=["Date"]).set_index("Date").tail(510)
+        return df if {"Open", "High", "Low", "Close", "Volume"} <= set(df.columns) else None
+    except Exception:
+        return None
+
+
 def update_us_prices(symbols):
-    ok = fail = 0
+    ok = fail = via_fallback = 0
+    failed = []
     for i in range(0, len(symbols), 50):
         batch = symbols[i : i + 50]
         ytickers = [s.replace(".", "-") for s in batch]  # BRK.B -> BRK-B
-        data = yf.download(ytickers, period="2y", interval="1d", auto_adjust=True,
-                           group_by="ticker", progress=False, threads=True)
+        data = None
+        for attempt in range(3):  # Yahoo rate-limits datacenter IPs sometimes
+            try:
+                data = yf.download(ytickers, period="2y", interval="1d", auto_adjust=True,
+                                   group_by="ticker", progress=False, threads=True)
+                if data is not None and len(data):
+                    break
+            except Exception:
+                pass
+            time.sleep(20 * (attempt + 1))
         for sym, yt in zip(batch, ytickers):
             try:
-                df = data[yt].dropna() if len(batch) > 1 else data.dropna()
-                if len(df) < 100:
-                    fail += 1
-                    continue
-                out = df[["Open", "High", "Low", "Close", "Volume"]].round(4)
-                out.index.name = "Date"
-                out.to_csv(os.path.join(US_DIR, sym + ".csv"))
-                ok += 1
+                df = data[yt].dropna() if (data is not None and len(batch) > 1) else (
+                    data.dropna() if data is not None else None)
+                if _write_if_fresher(sym, df):
+                    ok += 1
+                else:
+                    failed.append(sym)
             except Exception:
-                fail += 1
-        time.sleep(1)
-    print(f"US prices: {ok} updated, {fail} failed")
+                failed.append(sym)
+        time.sleep(2)
+    # fallback pass for anything Yahoo didn't freshen
+    today = str(pd.Timestamp.utcnow().date())
+    for sym in failed:
+        if _existing_last_date(sym) >= today:
+            continue
+        if _write_if_fresher(sym, _stooq(sym)):
+            via_fallback += 1
+        else:
+            fail += 1
+        time.sleep(0.3)
+    print(f"US prices: {ok} via yahoo, {via_fallback} via stooq fallback, {fail} stale/failed")
 
 
 if __name__ == "__main__":
