@@ -21,7 +21,7 @@ def load(path):
 
 def build_payload(day):
     payload = {"date": day, "scans": {}, "papers": {}}
-    for prof, suf in (("conservative", ""), ("balanced", "_balanced")):
+    for prof, suf in (("conservative", ""), ("balanced", "_balanced"), ("meanrev", "_meanrev")):
         payload["scans"][prof] = {m: load(f"output/scan_{m}_{day}{suf}.json") for m in ("india", "us")}
         payload["papers"][prof] = {m: load(f"output/paper_book_{m}{suf}.json") for m in ("india", "us")}
     payload["replay"] = load("output/replay_stats.json") or load("data/replay_stats.json")
@@ -227,7 +227,7 @@ function missPanels(){
 
 function render(){
   $('sub').textContent = DATA.date + ' · conservative + balanced risk profiles · India (NSE) & US (S&P 500) · updated each trading morning';
-  seg($('segProf'), [['conservative','Conservative'],['balanced','Balanced']], prof, k=>{prof=k;render();});
+  seg($('segProf'), [['conservative','Conservative'],['balanced','Balanced'],['meanrev','Dip-buy']], prof, k=>{prof=k;render();});
   seg($('segMkt'), [['india','India'],['us','US']], mkt, k=>{mkt=k;render();});
   tiles(); signalsTable(); paperTable(); stackedOutcomes(); familyChart(); missPanels();
   document.querySelectorAll('rect[data-t]').forEach(r=>{

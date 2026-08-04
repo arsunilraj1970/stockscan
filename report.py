@@ -218,6 +218,29 @@ def balanced_section(market, day):
     return "".join(parts)
 
 
+def meanrev_section(market, day):
+    p = os.path.join(OUT, f"scan_{market}_{day}_meanrev.json")
+    if not os.path.exists(p):
+        return ""
+    scan = json.load(open(p))
+    name = "India" if market == "india" else "US"
+    sigs = scan["signals"]
+    head = (f'<h2>Dip-buy book (mean-reversion) — {name} <span style="font-weight:400;'
+            f'color:var(--ink2);font-size:13px">(buy next OPEN · sell +2% · stop 2.5×ATR · '
+            f'exit by session 7 · validated 71% win rate)</span></h2>')
+    if not sigs:
+        return head + '<div class="meta">No oversold-dip setups today.</div>'
+    rows = "".join(
+        f'<tr><td>{s["symbol"]}</td><td>{s["currency"]}{s["close"]:,}</td>'
+        f'<td>{s["currency"]}{s["target"]:,}</td><td>{s["currency"]}{s["stop_loss"]:,} '
+        f'(−{s["stop_pct"]}%)</td><td>{s["rsi"]}</td><td>{s["confidence"]}</td></tr>' for s in sigs)
+    return (head + '<table><thead><tr><th>Symbol</th><th>Last close (buy near next open)</th>'
+            '<th>Sell at (+2%)</th><th>Protective stop</th><th>RSI-3</th><th>Conf.</th>'
+            f'</tr></thead><tbody>{rows}</tbody></table>'
+            '<div class="meta">Dip-buys are the high-win-rate book: frequent small profits. '
+            'Size each so the stop equals your normal 1R risk; recompute levels from your actual fill.</div>')
+
+
 def paper_section(market, profile="conservative"):
     suffix = "" if profile == "conservative" else f"_{profile}"
     p = os.path.join(OUT, f"paper_book_{market}{suffix}.json")
@@ -272,8 +295,11 @@ def main():
     for m in args.markets.split(","):
         sections.append(balanced_section(m, args.date))
     for m in args.markets.split(","):
+        sections.append(meanrev_section(m, args.date))
+    for m in args.markets.split(","):
         sections.append(paper_section(m, "conservative"))
         sections.append(paper_section(m, "balanced"))
+        sections.append(paper_section(m, "meanrev"))
     doc = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Swing Scan — {args.date}</title><style>{CSS}</style></head><body>
