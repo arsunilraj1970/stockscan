@@ -2,12 +2,20 @@ name: Update market data
 
 on:
   schedule:
-    # 22:30 UTC Mon-Fri = after US market close (4:00pm ET)
+    # 13:15 UTC = 6:45pm IST, after NSE close (bhavcopy usually out)
+    - cron: "15 13 * * 1-5"
+    # 17:00 UTC = 10:30pm IST, catches the bhavcopy mirror's evening commit
+    - cron: "0 17 * * 1-5"
+    # 22:30 UTC = after US market close (4:00pm ET)
     - cron: "30 22 * * 1-5"
   workflow_dispatch: {}   # allows manual Run workflow button
 
 permissions:
   contents: write
+
+concurrency:
+  group: data-update
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -18,11 +26,12 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install yfinance pandas
+      - run: python pipeline/update_india_data.py
       - run: python pipeline/update_us_data.py
       - name: Commit updated data
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add us_daily data
-          git diff --cached --quiet || git commit -m "data update $(date -u +%F)"
+          git add us_daily in_daily data
+          git diff --cached --quiet || git commit -m "data update $(date -u +%FT%H:%M)"
           git push
