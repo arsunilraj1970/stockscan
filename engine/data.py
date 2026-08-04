@@ -16,7 +16,13 @@ def load_universe(market: str) -> list:
 def load_history(market: str, symbol: str) -> pd.DataFrame | None:
     """Return OHLCV dataframe indexed by date, or None if unavailable."""
     if market == "india":
-        path = os.path.join(DATA, "eod2_data", "daily", symbol.lower() + ".csv")
+        # prefer the pipeline-maintained in_daily (fresh through last NSE close),
+        # fall back to the weekly-updated eod2_data mirror
+        path = os.path.join(ROOT, "in_daily", symbol.upper() + ".csv")
+        if not os.path.exists(path):
+            path = os.path.join(DATA, "in_daily", symbol.upper() + ".csv")
+        if not os.path.exists(path):
+            path = os.path.join(DATA, "eod2_data", "daily", symbol.lower() + ".csv")
     else:
         # us_daily may sit at repo root (pipeline output) or under data/
         path = os.path.join(ROOT, "us_daily", symbol.upper() + ".csv")
