@@ -71,6 +71,51 @@ def _write_if_fresher(sym, df):
     return True
 
 
+def _stooq_bulk_append(symbols):
+    """Third fallback: stooq's single-file daily database (one request for the
+    whole US market — immune to per-symbol rate limits). Appends the sessions
+    it contains to files that lack them. Returns count of files freshened."""
+    import zipfile
+    try:
+        blob = fetch("https://stooq.com/db/d/?b=d_us_txt")
+        zf = zipfile.ZipFile(io.BytesIO(blob))
+        rows = {}
+        for name in zf.namelist():
+            if not name.lower().endswith(".txt"):
+                continue
+            for line in zf.read(name).decode(errors="replace").splitlines():
+                p = line.split(",")
+                if len(p) < 9 or not p[0].upper().endswith(".US"):
+                    continue
+                tick = p[0].upper()[:-3].replace("-", ".")
+                try:
+                    d = f"{p[2][:4]}-{p[2][4:6]}-{p[2][6:8]}"
+                    rows.setdefault(tick, []).append(
+                        (d, float(p[4]), float(p[5]), float(p[6]), float(p[7]), int(float(p[8]))))
+                except Exception:
+                    continue
+        touched = 0
+        for sym in symbols:
+            if sym not in rows:
+                continue
+            p = os.path.join(US_DIR, sym + ".csv")
+            if not os.path.exists(p):
+                continue
+            txt = open(p).read().rstrip("\n")
+            last = txt.split("\n")[-1].split(",")[0]
+            add = sorted(r for r in rows[sym] if r[0] > last)
+            if not add:
+                continue
+            with open(p, "a") as f:
+                for d, o, h, l, c, v in add:
+                    f.write(f"{d},{o},{h},{l},{c},{v}\n")
+            touched += 1
+        return touched
+    except Exception as exc:
+        print("stooq bulk fallback failed:", exc)
+        return 0
+
+
 def _stooq(sym):
     """Fallback source: stooq.com free daily CSV."""
     try:
@@ -108,17 +153,19 @@ def update_us_prices(symbols):
             except Exception:
                 failed.append(sym)
         time.sleep(2)
-    # fallback pass for anything Yahoo didn't freshen
+    # fallback passes for anything Yahoo didn't freshen
     today = str(pd.Timestamp.utcnow().date())
-    for sym in failed:
+    still = [s for s in failed if _existing_last_date(s) < today]
+    bulk = _stooq_bulk_append(still) if len(still) > 25 else 0
+    for sym in still[:40]:  # per-symbol fallback only for a few (rate-limited)
         if _existing_last_date(sym) >= today:
             continue
         if _write_if_fresher(sym, _stooq(sym)):
             via_fallback += 1
-        else:
-            fail += 1
-        time.sleep(0.3)
-    print(f"US prices: {ok} via yahoo, {via_fallback} via stooq fallback, {fail} stale/failed")
+        time.sleep(0.5)
+    fail = sum(1 for s in symbols if _existing_last_date(s) < today)
+    print(f"US prices: {ok} via yahoo, bulk-appended {bulk}, {via_fallback} via per-symbol "
+          f"fallback, {fail} not fresh today (may be fine if market hasn't closed)")
 
 
 if __name__ == "__main__":
